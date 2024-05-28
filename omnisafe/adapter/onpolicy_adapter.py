@@ -162,12 +162,12 @@ class OnPolicyAdapter(OnlineAdapter):
         self._ep_J += 0.99 ** self._ep_len * info.get('original_reward', reward).cpu()
         self._ep_cost += info.get('original_cost', cost).cpu()
         self._ep_len += 1
-        
+
         if info.get('original_cost', cost).cpu() > self._ep_max_cost:
             self._ep_max_cost = info.get('original_cost', cost).cpu()
-            
-        if 'success' in info.keys():
-            self._ep_success += torch.tensor(info['success'], dtype=torch.float32)
+
+        if 'final_info' in info.keys():
+            self._ep_success += torch.tensor(info['final_info']['success'], dtype=torch.float32)
 
     def _log_metrics(self, logger: Logger, idx: int) -> None:
         """Log metrics, including ``EpRet``, ``EpCost``, ``EpLen``.
