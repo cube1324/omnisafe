@@ -166,7 +166,7 @@ class OnPolicyAdapter(OnlineAdapter):
         if info.get('original_cost', cost).cpu() > self._ep_max_cost:
             self._ep_max_cost = info.get('original_cost', cost).cpu()
 
-        if 'final_info' in info.keys():
+        if 'final_info' in info.keys() and 'success' in info['final_info'].keys():
             self._ep_success += torch.tensor(info['final_info']['success'], dtype=torch.float32)
 
     def _log_metrics(self, logger: Logger, idx: int) -> None:
