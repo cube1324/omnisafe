@@ -14,7 +14,6 @@
 # ==============================================================================
 """Implementation of the Probabilistic Ensembles with Trajectory Sampling algorithm."""
 
-
 from __future__ import annotations
 
 import os
@@ -429,30 +428,30 @@ class PETS(BaseAlgo):
                         'EvalMetrics/EpLen': ep_len,
                     },
                 )
-                save_video(
-                    frames,
-                    save_replay_path,
-                    fps=30,
-                    episode_trigger=lambda x: True,
-                    episode_index=current_step + num_episode,
-                    name_prefix='eval',
-                )
-                self.draw_picture(
-                    timestep=current_step,
-                    num_episode=self._cfgs.evaluation_cfgs.num_episode,
-                    pred_state=obs_pred,
-                    true_state=obs_true,
-                    save_replay_path=save_replay_path,
-                    name='obs_mean',
-                )
-                self.draw_picture(
-                    timestep=current_step,
-                    num_episode=self._cfgs.evaluation_cfgs.num_episode,
-                    pred_state=reward_pred,
-                    true_state=reward_true,
-                    save_replay_path=save_replay_path,
-                    name='reward',
-                )
+                # save_video(
+                #     frames,
+                #     save_replay_path,
+                #     fps=30,
+                #     episode_trigger=lambda x: True,
+                #     episode_index=current_step + num_episode,
+                #     name_prefix='eval',
+                # )
+                # self.draw_picture(
+                #     timestep=current_step,
+                #     num_episode=self._cfgs.evaluation_cfgs.num_episode,
+                #     pred_state=obs_pred,
+                #     true_state=obs_true,
+                #     save_replay_path=save_replay_path,
+                #     name='obs_mean',
+                # )
+                # self.draw_picture(
+                #     timestep=current_step,
+                #     num_episode=self._cfgs.evaluation_cfgs.num_episode,
+                #     pred_state=reward_pred,
+                #     true_state=reward_true,
+                #     save_replay_path=save_replay_path,
+                #     name='reward',
+                # )
                 frames = []
                 obs_pred, obs_true = [], []
 
@@ -491,7 +490,7 @@ class PETS(BaseAlgo):
             ep_ret += reward.cpu().numpy().item()
             ep_cost += cost.cpu().numpy().item()
             ep_len += info['num_step']
-            frames.append(self._eval_env.render())
+            # frames.append(self._eval_env.render())
 
     def draw_picture(
         self,
