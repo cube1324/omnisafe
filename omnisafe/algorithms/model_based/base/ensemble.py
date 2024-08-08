@@ -17,7 +17,6 @@
 # ==============================================================================
 """The Dynamics Model of MBPO and PETS."""
 
-
 from __future__ import annotations
 
 import itertools
@@ -338,7 +337,7 @@ class EnsembleModel(nn.Module):
         nn5_output = self._nn5(nn4_output)
         mean = nn5_output[:, :, : self._output_dim]
         logvar = self.max_logvar - F.softplus(
-            self.max_logvar - nn5_output[:, :, self._output_dim :],
+            self.max_logvar - nn5_output[:, :, self._output_dim:],
         )
         logvar = self.min_logvar + F.softplus(logvar - self.min_logvar)
         var = torch.exp(logvar)
@@ -377,7 +376,7 @@ class EnsembleModel(nn.Module):
         nn4_output = swish(unbatched_forward_fn(self._nn4, nn3_output))
         nn5_output = unbatched_forward_fn(self._nn5, nn4_output)
         mean = nn5_output[:, : self._output_dim]
-        logvar = self.max_logvar - F.softplus(self.max_logvar - nn5_output[:, self._output_dim :])
+        logvar = self.max_logvar - F.softplus(self.max_logvar - nn5_output[:, self._output_dim:])
         logvar = self.min_logvar + F.softplus(logvar - self.min_logvar)
         var = torch.exp(logvar)
 
@@ -593,7 +592,7 @@ class EnsembleDynamicsModel:
             # shape: [train_inputs.shape[0],num_ensemble]
 
             for start_pos in range(0, train_inputs.shape[0], self._batch_size):
-                idx = train_idx[:, start_pos : start_pos + self._batch_size]
+                idx = train_idx[:, start_pos: start_pos + self._batch_size]
                 train_input = torch.from_numpy(train_inputs[idx]).float().to(self._device)
                 train_label = torch.from_numpy(train_labels[idx]).float().to(self._device)
                 mean, logvar = self._ensemble_model.forward(train_input, ret_log_var=True)
@@ -609,7 +608,7 @@ class EnsembleDynamicsModel:
             val_losses_list = []
             for start_pos in range(0, holdout_inputs.shape[0], val_batch_size):
                 with torch.no_grad():
-                    idx = val_idx[:, start_pos : start_pos + val_batch_size]
+                    idx = val_idx[:, start_pos: start_pos + val_batch_size]
                     val_input = torch.from_numpy(holdout_inputs[idx]).float().to(self._device)
                     val_label = torch.from_numpy(holdout_labels[idx]).float().to(self._device)
                     holdout_mean, holdout_logvar = self._ensemble_model.forward(
@@ -683,7 +682,7 @@ class EnsembleDynamicsModel:
             reward_end_dim = reward_start_dim + self._reward_size
             return network_output[:, :, reward_start_dim:reward_end_dim]
         if self._rew_func is not None:
-            return self._rew_func(network_output[:, :, self._state_start_dim :])
+            return self._rew_func(network_output[:, :, self._state_start_dim:])
         raise ValueError('Reward function is not defined.')
 
     @torch.no_grad()
@@ -705,7 +704,7 @@ class EnsembleDynamicsModel:
         if self._predict_cost:
             return network_output[:, :, : self._cost_size]
         if self._cost_func is not None:
-            return self._cost_func(network_output[:, :, self._state_start_dim :])
+            return self._cost_func(network_output[:, :, self._state_start_dim:])
         raise ValueError('Cost function is not defined.')
 
     @torch.no_grad()
@@ -725,7 +724,7 @@ class EnsembleDynamicsModel:
             ValueError: If the terminal function is not defined.
         """
         if self._terminal_func is not None:
-            return self._terminal_func(network_output[:, :, self._state_start_dim :])
+            return self._terminal_func(network_output[:, :, self._state_start_dim:])
         raise ValueError('Terminal function is not defined.')
 
     def _predict(
@@ -756,7 +755,7 @@ class EnsembleDynamicsModel:
 
         ensemble_mean, ensemble_var = [], []
         for i in range(0, inputs.shape[1], batch_size):
-            model_input = inputs[:, i : min(i + batch_size, inputs.shape[1]), :]
+            model_input = inputs[:, i: min(i + batch_size, inputs.shape[1]), :]
             # input shape: [networ_size, (num_gaus+num_actor)*paritcle ,state_dim + action_dim]
             if idx is None:
                 b_mean, b_var = self._ensemble_model.forward(
@@ -806,9 +805,8 @@ class EnsembleDynamicsModel:
         ), 'states and actions must have the same shape except the last dimension'
         # shape: [network_size, (num_gaus+num_actor)*paritcle ,state_dim]
         inputs = torch.cat((states, actions), dim=-1)
-
         ensemble_mean, ensemble_var = self._predict(inputs, idx=idx)
-        ensemble_mean[:, :, self._state_start_dim :] += states
+        ensemble_mean[:, :, self._state_start_dim:] += states
         ensemble_std = torch.sqrt(ensemble_var)
         if deterministic:
             ensemble_samples = ensemble_mean
@@ -817,7 +815,7 @@ class EnsembleDynamicsModel:
                 ensemble_mean
                 + torch.randn(size=ensemble_mean.shape).to(self._device) * ensemble_std
             )
-        states = ensemble_samples[:, :, self._state_start_dim :]
+        states = ensemble_samples[:, :, self._state_start_dim:]
         # shape: [network_size, (num_gaus+num_actor)*paritcle ,state_dim]
         rewards = self._compute_reward(ensemble_samples)
         # shape: [network_size, (num_gaus+num_actor)*paritcle ,reward_dim]
@@ -900,7 +898,7 @@ class EnsembleDynamicsModel:
 
         for step in range(horizon):
             actions_t = get_action(states, step)
-            states, rewards, info = self.sample(states, actions_t, idx)
+            states, rewards, info = self.sample(states, actions_t.float(), idx)
             states = torch.clamp(torch.nan_to_num(states, nan=0, posinf=0, neginf=0), -100, 100)
             rewards = torch.nan_to_num(rewards, nan=0, posinf=0, neginf=0)
 

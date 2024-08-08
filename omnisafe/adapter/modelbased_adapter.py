@@ -14,7 +14,6 @@
 # ==============================================================================
 """Model-based Adapter for OmniSafe."""
 
-
 from __future__ import annotations
 
 import time
@@ -277,6 +276,7 @@ class ModelBasedAdapter(
         while epoch_steps < rollout_step and current_step < self._cfgs.train_cfgs.total_steps:
             action = act_func(current_step, self._current_obs)
             next_state, reward, cost, terminated, truncated, info = self.step(action)
+            # print("sample action")
             epoch_steps += info['num_step']
             current_step += info['num_step']
             self._log_value(reward=reward, cost=cost, info=info)
@@ -304,10 +304,12 @@ class ModelBasedAdapter(
                 and current_step - self._last_dynamics_update
                 >= self._cfgs.algo_cfgs.update_dynamics_cycle
             ):
+                # print("Update Dynamics")
                 update_dynamics_start = time.time()
                 update_dynamics_func()
                 self._last_dynamics_update = current_step
                 update_dynamics_time += time.time() - update_dynamics_start
+                # print("Update Dynamics", update_dynamics_time)
 
             if (
                 use_actor_critic
@@ -316,21 +318,24 @@ class ModelBasedAdapter(
                 and current_step - self._last_policy_update
                 >= self._cfgs.algo_cfgs.update_policy_cycle
             ):
+                # print("Update Actor Critic")
                 update_actor_critic_start = time.time()
                 update_actor_func(current_step)
                 self._last_policy_update = current_step
                 update_actor_critic_time += time.time() - update_actor_critic_start
-
+                # print("Update Actor Critic", update_actor_critic_time)
             if (
                 use_eval
                 and current_step % self._cfgs.evaluation_cfgs.eval_cycle
                 < self._cfgs.algo_cfgs.action_repeat
                 and current_step - self._last_eval >= self._cfgs.evaluation_cfgs.eval_cycle
             ):
+                # print("Eval")
                 eval_start = time.time()
                 eval_func(current_step, True)
                 self._last_eval = current_step
                 eval_time += time.time() - eval_start
+                # print("Eval", eval_time)
 
         if not self._first_log or current_step >= self._cfgs.train_cfgs.total_steps:
             self._log_metrics(logger)
@@ -368,7 +373,9 @@ class ModelBasedAdapter(
             info (dict[str, Any]): Some information logged by the environment.
         """
         self._ep_ret += info.get('original_reward', reward).cpu()
+        self._ep_J += 0.99 ** self._ep_len * info.get('original_reward', reward).cpu()
         self._ep_cost += info.get('original_cost', cost).cpu()
+        self._ep_max_cost = torch.max(self._ep_max_cost, info.get('original_cost', cost).cpu())
         self._ep_len += info.get('num_step', 1)
 
     def _log_metrics(self, logger: Logger) -> None:
@@ -381,6 +388,8 @@ class ModelBasedAdapter(
         logger.store(
             {
                 'Metrics/EpRet': self._ep_ret,
+                'Metrics/EpJ': self._ep_J,
+                'Metrics/EpMaxCost': self._ep_max_cost,
                 'Metrics/EpCost': self._ep_cost,
                 'Metrics/EpLen': self._ep_len,
             },
@@ -388,6 +397,8 @@ class ModelBasedAdapter(
 
     def _reset_log(self) -> None:
         """Reset log."""
+        self._ep_J = torch.zeros(1)
         self._ep_ret = torch.zeros(1)
         self._ep_cost = torch.zeros(1)
+        self._ep_max_cost = torch.zeros(1)
         self._ep_len = torch.zeros(1)

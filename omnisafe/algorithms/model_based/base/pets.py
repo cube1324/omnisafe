@@ -192,7 +192,9 @@ class PETS(BaseAlgo):
         self._logger.register_key('Train/Epoch')
         self._logger.register_key('TotalEnvSteps')
         self._logger.register_key('Metrics/EpRet', window_length=50)
+        self._logger.register_key('Metrics/EpJ', window_length=50)
         self._logger.register_key('Metrics/EpCost', window_length=50)
+        self._logger.register_key('Metrics/EpMaxCost', window_length=50)
         self._logger.register_key('Metrics/EpLen', window_length=50)
         if self._cfgs.evaluation_cfgs.use_eval:
             self._logger.register_key('EvalMetrics/EpRet', window_length=5)
